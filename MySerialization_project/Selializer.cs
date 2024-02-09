@@ -1,64 +1,71 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
-using System.Diagnostics;
+﻿using System.Collections;
 using System.Reflection;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 namespace MySerialization_project
 {
-    internal static class Selializer
+    internal static class Serializer
     {
-        public static StringBuilder Serialize<T>(T obj)
+        public static string Serialize<T>(T obj)
         {
-            var type = typeof(T);
-            return Serialize(obj, type);
+            var StringBuilder = new StringBuilder(256);
+            Serialize(StringBuilder, obj, typeof(T));
+            return StringBuilder.ToString();
         }
-
-        public static StringBuilder Serialize(object obj, Type type)
+        
+        public static void Serialize(StringBuilder stringBuilder, object obj, Type? type)
         {
-            var properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+            if (type == null) return;
 
-            StringBuilder strBuilder = new StringBuilder();
-            strBuilder.Append('{');
-
-            foreach (var property in properties)
+            if (type.IsArray || typeof(IEnumerable).IsAssignableFrom(type))
             {
-                strBuilder.Append($",");
-                var value = property.GetValue(obj);
-
-                if (value == null)
+                stringBuilder.Append('[');
+                foreach (var element in (IEnumerable)obj)
                 {
-                    strBuilder.Append($"\"{property.Name}\":");
-                    strBuilder.Append($"null");
+                    Serialize(stringBuilder, element, element?.GetType() ?? null);
+                    stringBuilder.Append(',');
                 }
-                else
-                {
-                    var valueType = value.GetType();
+                stringBuilder.Remove(stringBuilder.Length-1, 1);
+                stringBuilder.Append("]");
+            }
+            else
+            {
+                stringBuilder.Append('{');
 
-                    if (valueType.IsClass && valueType != typeof(string))
+                var properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+
+                foreach (var property in properties)
+                {
+                    var value = property.GetValue(obj);
+
+                    if (value == null)
                     {
-                        strBuilder.Append($"\"{property.Name}\":");
-                        var child = Serialize(value, valueType);
-                        strBuilder.Append(child);
+                        stringBuilder.Append($"\"{property.Name}\":\"null\"");
                     }
                     else
                     {
-                        strBuilder.Append($"\"{property.Name}\":");
-                        strBuilder.Append(GetTypeValue(valueType, value));
+                        var valueType = value.GetType();
+
+                        if (valueType.IsClass && valueType != typeof(string))
+                        {
+                            stringBuilder.Append($"\"{property.Name}\":");
+                            Serialize(stringBuilder, value, valueType);
+                        }
+                        else
+                        {
+                            stringBuilder.Append($"\"{property.Name}\":{GetTypeValue(valueType, value)}");
+                        }
                     }
+                    stringBuilder.Append(",");
                 }
- 
+
+                stringBuilder.Remove(stringBuilder.Length-1, 1);
+                stringBuilder.Append("}");
+
             }
-
-            strBuilder.Append('}');
-
-            strBuilder.Remove(1, 1);
-
-            return strBuilder;
         }
 
-       private static object GetTypeValue(Type typeCode, object value)
+        private static object GetTypeValue(Type typeCode, object value)
         {
             switch (Type.GetTypeCode(typeCode))
             {
@@ -80,5 +87,7 @@ namespace MySerialization_project
                     return $"\"{value}\"";
             }
         }
+    
+    
     }
 }
