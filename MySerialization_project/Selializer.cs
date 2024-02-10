@@ -87,7 +87,7 @@ namespace MySerialization_project
                     return $"\"{value}\"";
             }
         }
-    
-    
+
+
     }
 }

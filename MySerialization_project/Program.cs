@@ -1,6 +1,8 @@
 ﻿using MySerialization_project;
 using Newtonsoft.Json;
 using System.Diagnostics;
+using System.Linq.Expressions;
+using static fastJSON.Reflection;
 
 var model = new Test
 {
@@ -31,7 +33,7 @@ var model = new Test
 string content = string.Empty;
 var list = new List<Test>();
 
-for (int i  = 0; i < 10; i++)
+for (int i = 0; i < 1; i++)
 {
     list.Add(new Test
     {
@@ -41,23 +43,21 @@ for (int i  = 0; i < 10; i++)
         {
             Age = new Test3()
             {
-                Age = 234,
+                Age = i+234,
             },
-            Salary = 23,
+            Salary = i+23,
         }
     },
-        Height = 123,
+        Height = i+54,
         Name = "Hello",
         LastName = "Hello",
     });
 }
 
 
-
-
 CountTime("Мой", Serializer.Serialize, list);
-CountTime("Внешний", JsonConvert.SerializeObject, list);
-
+CountTime("Newtonsoft", JsonConvert.SerializeObject, list);
+CountTime("FastJson", fastJSON.JSON.ToJSON, list);
 
 void CountTime<T>(string str, Func<T, string> func, T list)
 {
@@ -66,21 +66,24 @@ void CountTime<T>(string str, Func<T, string> func, T list)
     stopwatch.Start();
 
     var result = func(list);
-    if (content == string.Empty)
-    {
-        content = result;
-    }
-    else
-    {
-        if (content != result)
-        {
-            throw new Exception("Not match");
-        }
-    }
+    //if (content == string.Empty)
+    //{
+    //    content = result;
+    //}
+    //else
+    //{
+    //    if (content != result)
+    //    {
+    //        throw new Exception("Not match");
+    //    }
+    //}
 
     stopwatch.Stop();
 
     Console.WriteLine($"Время выполнения {str} кода: {stopwatch.ElapsedMilliseconds} миллисекунд.");
+    Console.WriteLine(result);
+
+    var obj = Serializer.Deserialize<Test>(result);
 }
 
 
